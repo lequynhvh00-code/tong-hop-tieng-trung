@@ -51,6 +51,7 @@ body{font-family:"Arial","Tahoma","Segoe UI",sans-serif;background:#f5f8f5;color
 </style>
 </head>
 <body>
+<script src="vocab-index.js"></script>
 <header class="app-header">
  <div class="brand">
   <img class="logo" src="assets/logo.webp" alt="Lê Quỳnh">
@@ -101,28 +102,20 @@ loadPanel("han");
    Điều này tránh khóa UI trên GitHub Pages. */
 const globalSearch=document.getElementById("globalSearch");
 const globalResults=document.getElementById("globalResults");
-let globalIndex=[];
-let globalIndexReady=false;
-let globalIndexPromise=null;
+/* Index được nhúng bằng file JS tĩnh để điện thoại không phụ thuộc fetch/cache. */
+let globalIndex=Array.isArray(window.__VOCAB_INDEX__)?window.__VOCAB_INDEX__:[];
+let globalIndexReady=globalIndex.length>0;
 function normGlobal(v){return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim()}
 function escapeGlobal(v){return String(v||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
-async function loadGlobalIndex(){
-  if(globalIndexReady)return globalIndex;
-  if(!globalIndexPromise){
-    globalIndexPromise=fetch("vocab-index.json",{cache:"force-cache"})
-      .then(r=>{if(!r.ok)throw new Error("Không tải được vocab-index.json");return r.json()})
-      .then(data=>{globalIndex=Array.isArray(data)?data:[];globalIndexReady=true;return globalIndex})
-      .catch(err=>{globalIndexPromise=null;throw err});
-  }
-  return globalIndexPromise;
+function loadGlobalIndex(){
+  return Promise.resolve(globalIndex);
 }
 function renderGlobalResults(q){
   const nq=normGlobal(q);
   if(!nq){globalResults.classList.remove("show");globalResults.innerHTML="";return;}
   if(!globalIndexReady){
-    globalResults.innerHTML='<div class="global-empty">⏳ Đang tải dữ liệu từ vựng...</div>';
+    globalResults.innerHTML='<div class="global-empty">⚠️ Dữ liệu tìm kiếm chưa được tải. Hãy tải lại trang.</div>';
     globalResults.classList.add("show");
-    loadGlobalIndex().then(()=>renderGlobalResults(q)).catch(()=>{globalResults.innerHTML='<div class="global-empty">⚠️ Không tải được dữ liệu tìm kiếm.</div>';});
     return;
   }
   const arr=globalIndex.filter(x=>normGlobal(x.word+" "+x.py+" "+x.meaning).includes(nq)).slice(0,80);
